@@ -8,6 +8,44 @@ class TestUserAdminCreation:
 	"""Tests d'intégration pour la création d'utilisateurs par un administrateur (POST /users/create_user)."""
 
 	@pytest.mark.asyncio
+	async def test_authenticated_user_can_read_own_profile(self, student_client: AsyncClient, student_user):
+		"""Un utilisateur authentifie peut consulter son propre profil via /users/me."""
+		response = await student_client.get("/users/me")
+
+		assert response.status_code == 200
+		data = response.json()
+		assert data["id"] == student_user.id
+		assert data["email"] == student_user.email
+		assert data["role"] == RoleName.student.value
+
+	@pytest.mark.asyncio
+	async def test_admin_can_list_users(self, admin_client: AsyncClient, student_user, company_user):
+		"""Un administrateur authentifie peut lister les utilisateurs actifs."""
+		response = await admin_client.get("/users")
+
+		assert response.status_code == 200
+		data = response.json()
+		assert any(item["email"] == student_user.email for item in data)
+		assert any(item["email"] == company_user.email for item in data)
+
+	@pytest.mark.asyncio
+	async def test_admin_can_update_user_role(self, admin_client: AsyncClient, student_user):
+		"""Un administrateur peut modifier le rôle d'un utilisateur existant."""
+		payload = {"role": RoleName.company.value}
+		response = await admin_client.patch(f"/users/update/{student_user.id}/role", json=payload)
+
+		assert response.status_code == 200
+		data = response.json()
+		assert data["role"] == RoleName.company.value
+
+	@pytest.mark.asyncio
+	async def test_admin_can_delete_user(self, admin_client: AsyncClient, student_user):
+		"""Un administrateur peut désactiver un compte utilisateur (soft delete)."""
+		response = await admin_client.delete(f"/users/delete/{student_user.id}")
+
+		assert response.status_code == 204
+
+	@pytest.mark.asyncio
 	async def test_admin_create_user_with_role_company(self, admin_client: AsyncClient):
 		"""Un administrateur authentifié peut créer une entreprise avec le rôle choisi (201 Created)."""
 		payload = {

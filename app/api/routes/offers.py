@@ -79,7 +79,7 @@ def list_my_offers(
 		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Ce role ne peut pas effectuer cette action.")
 
 	offer_repo = OfferRepository(db)
-	return list(offer_repo.list_all(created_by=current_user.id))
+	return list(offer_repo.list_for_company(current_user.id))
 
 
 @router.get(

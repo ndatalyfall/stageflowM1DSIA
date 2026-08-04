@@ -14,4 +14,4 @@ addopts = [
 
 [tool.coverage.run]
 source = ["app"]
-omit = ["app/main.py", "app/test_decorator.py", "alembic/*"]
+omit = ["app/main.py", "app/test_decorator.py", "alembic/*", "app/api/demo_store.py"]
