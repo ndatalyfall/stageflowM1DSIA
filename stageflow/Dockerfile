@@ -24,7 +24,7 @@ RUN pip install --upgrade pip && \
 pip install --no-cache-dir -r requirements.txt
 
 # ---- Stage 2 : Image de production (légère) ----
-FROM python:3.11-slim AS production
+FROM python:3.12-slim AS production
 
 # Déclarer les variables d'environnement pour l'environnement virtuel
 ENV VIRTUAL_ENV=/opt/venv
