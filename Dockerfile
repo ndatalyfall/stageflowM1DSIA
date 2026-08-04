@@ -37,7 +37,7 @@ WORKDIR /app
 
 COPY --from=builder /opt/venv /opt/venv
 # Copier le code de l'application
-COPY --chown=appuser:appgroup app/ ./app/
+COPY --chown=appuser:appgroup app/ ./papp/
 
 COPY --chown=appuser:appgroup alembic/ ./alembic/
 COPY --chown=appuser:appgroup alembic.ini .
