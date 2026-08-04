@@ -1,0 +1,90 @@
+services:
+  # ---- API FastAPI ----
+  api:
+    build:
+      context: .
+      target: production
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "postgresql+psycopg://ndataly:thiercoum@db:5432/stageflowdb"
+      REDIS_URL: "redis://redis:6379/0"
+      SECRET_KEY: "${SECRET_KEY:-development-secret-change-me-32-chars}"
+      DEBUG: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - backend
+
+  # ---- Base de données PostgreSQL ----
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ndataly
+      POSTGRES_PASSWORD: thiercoum
+      POSTGRES_DB: stageflowdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ndataly -d stageflowdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+    networks:
+      - backend
+    
+  # ---- Cache Redis ----
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - backend
+
+  # ---- Reverse Proxy Nginx ----
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+    networks:
+      - backend
+
+  # ---- Migrations & Initialisation (run-once) ----
+  migrations:
+    build:
+      context: .
+      target: production
+    command: sh -c "alembic upgrade head && python -m app.db.init_db"
+    environment:
+      DATABASE_URL: "postgresql+psycopg://ndataly:thiercoum@db:5432/stageflowdb"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  backend:
+    driver: bridge
