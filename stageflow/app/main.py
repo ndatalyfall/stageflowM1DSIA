@@ -44,6 +44,12 @@ app = FastAPI(
 app.add_middleware(RequestIdMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 
+
+@app.get("/health", include_in_schema=False)
+async def health():
+    """Endpoint de verification de l'etat de l'API."""
+    return {"status": "ok"}
+
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(offers.router)

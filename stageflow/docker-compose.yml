@@ -1,29 +1,120 @@
-services:
-	api:
-		build: .
-		ports:
-			- "8000:8000"
-		env_file:
-			- .env
-		depends_on:
-			postgres:
-				condition: service_healthy
+# services:
+# 	api:
+# 		build: .
+# 		ports:
+# 			- "8000:8000"
+# 		env_file:
+# 			- .env
+# 		depends_on:
+# 			postgres:
+# 				condition: service_healthy
 
-	postgres:
-		image: postgres:16-alpine
-		environment:
-			POSTGRES_DB: stageflow
-			POSTGRES_USER: postgres
-			POSTGRES_PASSWORD: postgres
-		ports:
-			- "5432:5432"
-		volumes:
-			- stageflow_pgdata:/var/lib/postgresql/data
-		healthcheck:
-			test: ["CMD-SHELL", "pg_isready -U postgres -d stageflow"]
-			interval: 5s
-			timeout: 5s
-			retries: 10
+# 	postgres:
+# 		image: postgres:16-alpine
+# 		environment:
+# 			POSTGRES_DB: stageflow
+# 			POSTGRES_USER: postgres
+# 			POSTGRES_PASSWORD: postgres
+# 		ports:
+# 			- "5432:5432"
+# 		volumes:
+# 			- stageflow_pgdata:/var/lib/postgresql/data
+# 		healthcheck:
+# 			test: ["CMD-SHELL", "pg_isready -U postgres -d stageflow"]
+# 			interval: 5s
+# 			timeout: 5s
+# 			retries: 10
+
+# volumes:
+# 	stageflow_pgdata:
+
+services:
+  # ---- API FastAPI ----
+  api:
+    build:
+      context: .
+      target: production
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://appuser:secret@db:5432/stageflowdb"
+      REDIS_URL: "redis://redis:6379/0"
+      SECRET_KEY: "${SECRET_KEY}"
+      DEBUG: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - backend
+
+  # ---- Base de données PostgreSQL ----
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD: secret
+      POSTGRES_DB: stageflowdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d stageflowdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+    networks:
+      - backend
+    
+  # ---- Cache Redis ----
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - backend
+
+  # ---- Reverse Proxy Nginx ----
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+    networks:
+      - backend
+
+  # ---- Migrations (run-once) ----
+  migrations:
+    build:
+      context: .
+      target: production
+    command: alembic upgrade head
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://appuser:secret@db:5432/stageflowdb"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
 
 volumes:
-	stageflow_pgdata:
+  postgres_data:
+  redis_data:
+
+networks:
+  backend:
+    driver: bridge
