@@ -37,7 +37,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: "postgresql+asyncpg://appuser:secret@db:5432/stageflowdb"
+      DATABASE_URL: "postgresql+asyncpg://ndataly:thiercoum@db:5432/stageflowdb"
       REDIS_URL: "redis://redis:6379/0"
       SECRET_KEY: "${SECRET_KEY}"
       DEBUG: "false"
@@ -54,13 +54,13 @@ services:
   db:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: appuser
-      POSTGRES_PASSWORD: secret
+      POSTGRES_USER: ndataly
+      POSTGRES_PASSWORD: thiercoum
       POSTGRES_DB: stageflowdb
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U appuser -d stageflowdb"]
+      test: ["CMD-SHELL", "pg_isready -U ndataly -d stageflowdb"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -104,7 +104,7 @@ services:
       target: production
     command: alembic upgrade head
     environment:
-      DATABASE_URL: "postgresql+asyncpg://appuser:secret@db:5432/stageflowdb"
+      DATABASE_URL: "postgresql+asyncpg://ndataly:thiercoum@db:5432/stageflowdb"
     depends_on:
       db:
         condition: service_healthy
