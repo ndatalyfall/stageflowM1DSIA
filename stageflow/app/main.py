@@ -1,8 +1,25 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api.routes import applications, auth, offers, users
+from app.db.init_db import init_db
+from app.db.session import SessionLocal
 from app.middlewares.request_id import RequestIdMiddleware
 from app.middlewares.security_headers import SecurityHeadersMiddleware
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+	"""Initialise la base de données et crée l'administrateur par défaut au démarrage."""
+	db = SessionLocal()
+	try:
+		init_db(db)
+	except Exception:
+		pass
+	finally:
+		db.close()
+	yield
+
 
 tags_metadata = [
 	{
@@ -39,6 +56,7 @@ app = FastAPI(
 	openapi_tags=tags_metadata,
 	docs_url="/docs",
 	redoc_url="/redoc",
+	lifespan=lifespan,
 )
 
 app.add_middleware(RequestIdMiddleware)
@@ -47,8 +65,9 @@ app.add_middleware(SecurityHeadersMiddleware)
 
 @app.get("/health", include_in_schema=False)
 async def health():
-    """Endpoint de verification de l'etat de l'API."""
-    return {"status": "ok"}
+	"""Endpoint de verification de l'etat de l'API."""
+	return {"status": "ok"}
+
 
 app.include_router(auth.router)
 app.include_router(users.router)

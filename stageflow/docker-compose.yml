@@ -1,33 +1,3 @@
-# services:
-# 	api:
-# 		build: .
-# 		ports:
-# 			- "8000:8000"
-# 		env_file:
-# 			- .env
-# 		depends_on:
-# 			postgres:
-# 				condition: service_healthy
-
-# 	postgres:
-# 		image: postgres:16-alpine
-# 		environment:
-# 			POSTGRES_DB: stageflow
-# 			POSTGRES_USER: postgres
-# 			POSTGRES_PASSWORD: postgres
-# 		ports:
-# 			- "5432:5432"
-# 		volumes:
-# 			- stageflow_pgdata:/var/lib/postgresql/data
-# 		healthcheck:
-# 			test: ["CMD-SHELL", "pg_isready -U postgres -d stageflow"]
-# 			interval: 5s
-# 			timeout: 5s
-# 			retries: 10
-
-# volumes:
-# 	stageflow_pgdata:
-
 services:
   # ---- API FastAPI ----
   api:
@@ -37,9 +7,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: "postgresql+asyncpg://ndataly:thiercoum@db:5432/stageflowdb"
+      DATABASE_URL: "postgresql+psycopg://ndataly:thiercoum@db:5432/stageflowdb"
       REDIS_URL: "redis://redis:6379/0"
-      SECRET_KEY: "${SECRET_KEY}"
+      SECRET_KEY: "${SECRET_KEY:-development-secret-change-me-32-chars}"
       DEBUG: "false"
     depends_on:
       db:
@@ -97,14 +67,14 @@ services:
     networks:
       - backend
 
-  # ---- Migrations (run-once) ----
+  # ---- Migrations & Initialisation (run-once) ----
   migrations:
     build:
       context: .
       target: production
-    command: alembic upgrade head
+    command: sh -c "alembic upgrade head && python -m app.db.init_db"
     environment:
-      DATABASE_URL: "postgresql+asyncpg://ndataly:thiercoum@db:5432/stageflowdb"
+      DATABASE_URL: "postgresql+psycopg://ndataly:thiercoum@db:5432/stageflowdb"
     depends_on:
       db:
         condition: service_healthy

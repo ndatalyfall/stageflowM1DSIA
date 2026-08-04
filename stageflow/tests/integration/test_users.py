@@ -5,7 +5,7 @@ from app.schemas.user import RoleName
 
 
 class TestUserAdminCreation:
-	"""Tests d'intégration pour la création d'utilisateurs par un administrateur (POST /users)."""
+	"""Tests d'intégration pour la création d'utilisateurs par un administrateur (POST /users/create_user)."""
 
 	@pytest.mark.asyncio
 	async def test_admin_create_user_with_role_company(self, admin_client: AsyncClient):
@@ -16,7 +16,7 @@ class TestUserAdminCreation:
 			"password": "password123",
 			"role": RoleName.company.value,
 		}
-		response = await admin_client.post("/users", json=payload)
+		response = await admin_client.post("/users/create_user", json=payload)
 
 		assert response.status_code == 201
 		data = response.json()
@@ -34,7 +34,7 @@ class TestUserAdminCreation:
 			"password": "password123",
 			"role": RoleName.program_manager.value,
 		}
-		response = await admin_client.post("/users", json=payload)
+		response = await admin_client.post("/users/create_user", json=payload)
 
 		assert response.status_code == 201
 		data = response.json()
@@ -49,7 +49,7 @@ class TestUserAdminCreation:
 			"password": "password123",
 			"role": RoleName.admin.value,
 		}
-		response = await student_client.post("/users", json=payload)
+		response = await student_client.post("/users/create_user", json=payload)
 
 		assert response.status_code == 403
 
@@ -62,7 +62,7 @@ class TestUserAdminCreation:
 			"password": "password123",
 			"role": RoleName.student.value,
 		}
-		response = await client.post("/users", json=payload)
+		response = await client.post("/users/create_user", json=payload)
 
 		assert response.status_code == 401
 
@@ -75,9 +75,9 @@ class TestUserAdminCreation:
 			"password": "password123",
 			"role": RoleName.student.value,
 		}
-		res1 = await admin_client.post("/users", json=payload)
+		res1 = await admin_client.post("/users/create_user", json=payload)
 		assert res1.status_code == 201
 
-		res2 = await admin_client.post("/users", json=payload)
+		res2 = await admin_client.post("/users/create_user", json=payload)
 		assert res2.status_code == 409
 		assert res2.json()["detail"] == "Cette adresse email existe deja."

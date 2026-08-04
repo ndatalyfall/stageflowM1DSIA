@@ -16,9 +16,9 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: stageflow_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: stageflowdb
+          POSTGRES_USER: ndataly
+          POSTGRES_PASSWORD: thiercoum
         ports:
           - 5432:5432
         options: >-
@@ -42,7 +42,7 @@ jobs:
 
       - name: Run tests
         env:
-          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/stageflow_test
+          DATABASE_URL: postgresql+psycopg://ndataly:thiercoum@localhost:5432/stageflowdb
           JWT_SECRET_KEY: ci-secret-key-with-at-least-32-characters
           PYTHONPATH: .
         run: pytest --cov=app --cov-report=xml
